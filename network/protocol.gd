@@ -1,6 +1,6 @@
 extends RefCounted
 const VERSION = 1
-const BUILD = "0.4.0-beta1"
+const BUILD = "0.4.0-beta2"
 const MAX_CLIENT_BYTES = 16384
 const MAX_SERVER_BYTES = 131072
 const ACTIONS = ["play","raise","accept","counter","fold","concede","eleven_yes","eleven_no"]

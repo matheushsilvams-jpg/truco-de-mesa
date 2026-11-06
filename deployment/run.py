@@ -6,10 +6,12 @@ import json
 import os
 from pathlib import Path
 import signal
+import base64
+import hashlib
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILD = '0.4.0-beta1'
+BUILD = '0.4.0-beta2'
 
 class Gateway:
     def __init__(self, backend_port, process=None):
@@ -22,11 +24,24 @@ class Gateway:
         if self.draining or (self.process and self.process.returncode is not None):
             return False
         try:
-            _, writer = await asyncio.wait_for(asyncio.open_connection('127.0.0.1', self.backend_port), 1)
-            writer.close()
-            await writer.wait_closed()
-            return True
-        except (OSError, TimeoutError):
+            reader, writer = await asyncio.wait_for(asyncio.open_connection('127.0.0.1', self.backend_port), 1)
+            try:
+                # Uma negociação real valida a autoridade sem criar uma sessão.
+                key=base64.b64encode(os.urandom(16)).decode('ascii')
+                request=f'GET /v1/ws HTTP/1.1\r\nHost: 127.0.0.1:{self.backend_port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n'
+                writer.write(request.encode('ascii'));await writer.drain()
+                response=await asyncio.wait_for(reader.readuntil(b'\r\n\r\n'),2)
+                expected=base64.b64encode(hashlib.sha1((key+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode('ascii')).digest())
+                headers={line.split(':',1)[0].lower():line.split(':',1)[1].strip() for line in response.decode('iso-8859-1').split('\r\n')[1:] if ':' in line}
+                ok=response.startswith(b'HTTP/1.1 101 ') and headers.get('sec-websocket-accept')==expected.decode('ascii')
+                if ok:
+                    mask=os.urandom(4);payload=b'\x03\xe8'
+                    writer.write(b'\x88\x82'+mask+bytes(v^mask[i%4] for i,v in enumerate(payload)));await writer.drain()
+                return ok
+            finally:
+                writer.close()
+                with contextlib.suppress(OSError,TimeoutError):await asyncio.wait_for(writer.wait_closed(),1)
+        except (OSError, TimeoutError,asyncio.IncompleteReadError,asyncio.LimitOverrunError):
             return False
 
     async def reply(self, writer, status, body=b'', mime='text/plain; charset=utf-8', extra=''):
@@ -112,7 +127,7 @@ async def main():
     backend_port=int(os.environ.get('GODOT_PORT','10001'))
     if port==backend_port:raise RuntimeError('As portas pública e interna precisam ser distintas.')
     executable=os.environ.get('GODOT_BIN',str(ROOT/'.toolchain/godot'))
-    env=dict(os.environ,PORT=str(backend_port),GODOT_SILENCE_ROOT_WARNING='1')
+    env=dict(os.environ,PORT=str(backend_port),TRUCO_BIND='127.0.0.1',GODOT_SILENCE_ROOT_WARNING='1')
     process=await asyncio.create_subprocess_exec(executable,'--headless','--path',str(ROOT),'--script','server/main.gd',cwd=ROOT,env=env)
     gateway=Gateway(backend_port,process)
     stop=asyncio.Event()
