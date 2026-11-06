@@ -100,6 +100,8 @@ class Gateway:
             if path=='/version':
                 await self.reply(writer,200,json.dumps({'build':BUILD,'protocol':1,'storage':'ephemeral'}).encode(),'application/json');return
             download=os.environ.get('DOWNLOAD_URL','')
+            if download.rstrip('/')=='https://github.com/matheushsilvams-jpg/truco-de-mesa-apk/releases':
+                download=download.rstrip('/')+'/tag/v0.4.0-beta2'
             parsed=urlsplit(download)
             valid_download=parsed.scheme=='https' and bool(parsed.netloc) and not parsed.username and not parsed.password and '\r' not in download and '\n' not in download
             if path=='/baixar':
@@ -108,8 +110,8 @@ class Gateway:
                 else:await self.reply(writer,503,'O APK está sendo preparado. Volte em breve.'.encode())
                 return
             if path=='/':
-                action='<a href="/baixar">Baixar APK Android gratuito</a>' if valid_download else '<p>O instalador será disponibilizado nesta página após a validação.</p>'
-                page=f'''<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Truco de Mesa</title><style>body{{margin:0;background:#102b23;color:#f8f1e6;font:18px system-ui;line-height:1.6}}main{{max-width:680px;margin:12vh auto;padding:28px}}h1{{color:#e8ba77;font-size:44px;line-height:1.1}}a{{display:inline-block;background:#e8ba77;color:#102b23;padding:16px 24px;border-radius:14px;font-weight:700;text-decoration:none}}small{{color:#b3c3bb}}li{{margin:12px 0}}</style><main><small>BETA PRIVADA · {BUILD}</small><h1>Truco de Mesa</h1><p>A mesma mesa, mesmo longe. Convide seus amigos para jogar de graça.</p>{action}<ol><li>Instalem o APK nos celulares Android.</li><li>Abram <b>Com amigos</b>. Uma pessoa cria a sala.</li><li>Compartilhem o código, confirmem as equipes e toquem em <b>Estou pronto</b>.</li></ol><p>1×1, 2×2 e 3×3 · Paulista, Mineiro e Maluco · treino offline</p><small>Servidor gratuito: a primeira conexão pode levar cerca de um minuto. Uma reinicialização pode encerrar a mesa, sem atribuir vencedor.</small></main></html>'''
+                action='<a href="https://truco-de-mesa-jogar.onrender.com/">Jogar no iPhone ou navegador</a> <a href="/baixar">Baixar APK Android gratuito</a>' if valid_download else '<p>O instalador será disponibilizado nesta página após a validação.</p>'
+                page=f'''<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Truco de Mesa</title><style>body{{margin:0;background:#102b23;color:#f8f1e6;font:18px system-ui;line-height:1.6}}main{{max-width:680px;margin:12vh auto;padding:28px}}h1{{color:#e8ba77;font-size:44px;line-height:1.1}}a{{display:inline-block;background:#e8ba77;color:#102b23;padding:16px 24px;border-radius:14px;font-weight:700;text-decoration:none}}small{{color:#b3c3bb}}li{{margin:12px 0}}</style><main><small>BETA MULTIPLAYER · {BUILD}</small><h1>Truco de Mesa</h1><p>A mesma mesa, mesmo longe. Convide seus amigos para jogar de graça.</p>{action}<ol><li>No iPhone, abram a versão web pelo Safari e adicionem à Tela de Início. No Android, instalem o APK ou usem a versão web.</li><li>Abram <b>Com amigos</b>. Uma pessoa cria a sala. iPhone e Android entram pelo mesmo código.</li><li>Compartilhem o código, confirmem as equipes e toquem em <b>Estou pronto</b>.</li></ol><p>1×1, 2×2 e 3×3 · Paulista, Mineiro e Maluco · treino offline</p><small>Servidor gratuito: a primeira conexão pode levar cerca de um minuto. Uma reinicialização pode encerrar a mesa, sem atribuir vencedor.</small></main></html>'''
                 await self.reply(writer,200,page.encode(),'text/html; charset=utf-8');return
             await self.reply(writer,404,b'Pagina nao encontrada.')
         except (OSError,TimeoutError,asyncio.IncompleteReadError,UnicodeError,ValueError):
