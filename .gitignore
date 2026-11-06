@@ -1,0 +1,7 @@
+.toolchain/
+.godot/
+__pycache__/
+*.pyc
+*.keystore
+*.jks
+.env
