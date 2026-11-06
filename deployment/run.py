@@ -127,7 +127,7 @@ async def main():
     backend_port=int(os.environ.get('GODOT_PORT','10001'))
     if port==backend_port:raise RuntimeError('As portas pública e interna precisam ser distintas.')
     executable=os.environ.get('GODOT_BIN',str(ROOT/'.toolchain/godot'))
-    env=dict(os.environ,PORT=str(backend_port),TRUCO_BIND='127.0.0.1',GODOT_SILENCE_ROOT_WARNING='1')
+    env=dict(os.environ,TRUCO_BACKEND_PORT=str(backend_port),TRUCO_BIND='127.0.0.1',GODOT_SILENCE_ROOT_WARNING='1')
     process=await asyncio.create_subprocess_exec(executable,'--headless','--path',str(ROOT),'--script','server/main.gd',cwd=ROOT,env=env)
     gateway=Gateway(backend_port,process)
     stop=asyncio.Event()
