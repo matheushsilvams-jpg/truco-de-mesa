@@ -10,7 +10,7 @@ import zipfile
 URL = 'https://github.com/matheushsilvams-jpg/truco-de-mesa-apk/releases/download/v0.4.0-web1/truco-de-mesa-0.4.0-web1.zip'
 SHA256 = 'ebb5bfe7b8cc27a80d490094a006ec11942c4018c45ec7af204a2d7538051b89'
 ROOT = Path(__file__).resolve().parents[1]
-WEB_REVISION = '0.4.0-web1.3'
+WEB_REVISION = '0.4.0-web1.4'
 
 def apply_frontend(destination):
     launcher=Path(__file__).with_name('web_launcher.html')
@@ -20,8 +20,9 @@ def apply_frontend(destination):
     manifest=destination/'manifest.webmanifest'
     data=json.loads(manifest.read_text());data['start_url']='./online/'
     manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+    (destination/'manifest.json').write_bytes(manifest.read_bytes())
     files=['./'+p.relative_to(destination).as_posix() for p in sorted(destination.rglob('*')) if p.is_file() and p.name not in ('sw.js','build.json')]
-    shell=['./','./index.html','./online/','./online/index.html','./online/online.js','./online/online.css','./pwa.js','./logo.png','./manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png']
+    shell=['./','./index.html','./online/','./online/index.html','./online/online.js','./online/online.css','./pwa.js','./logo.png','./manifest.json','./manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png']
     worker=destination/'sw.js';script=worker.read_text()
     import re
     script=re.sub(r'const CACHE=.*?;', 'const CACHE='+json.dumps('truco-web-'+WEB_REVISION)+';',script)

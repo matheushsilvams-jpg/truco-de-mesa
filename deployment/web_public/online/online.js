@@ -14,6 +14,15 @@ if(!/^[a-f0-9]{64}$/.test(token))token='';
 let socket=null,connected=false,wanted=false,sessionId='',room=null,attempts=0,deadline=0,retryTimer=0,handshakeTimer=0,lastReceived=0;
 let pendingAction=null,selected='',subject='',codeDraft='',variantDraft='paulista',playersDraft=4,deckDraft='sujo',botsDraft=false,covered=false,barrierTimer=0,barrierSent='',signalState=null,toastTimer=0;
 const pending=new Map();
+const tabId=id();let tabChannel=null;
+try{tabChannel=new BroadcastChannel('truco-web-active-tab-v1');tabChannel.addEventListener('message',event=>yieldTab(event.data));}catch(_){}
+window.addEventListener('storage',event=>{if(event.key==='truco-web-active-tab-v1')yieldTab(event.newValue);});
+function yieldTab(owner){
+  if(!wanted||typeof owner!=='string'||owner===tabId)return;
+  wanted=false;connected=false;clearTimeout(retryTimer);clearTimeout(handshakeTimer);cancelSignal(false);
+  const old=socket;socket=null;old?.close();room=null;pendingAction=null;pending.clear();
+  setStatus('Sessão aberta em outra aba');render();toast('A mesa continua na outra aba. Toque em Entrar no servidor se quiser retomá-la aqui.');
+}
 
 function read(key){try{return JSON.parse(localStorage.getItem(key));}catch(_){return null;}}
 function save(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){/* A sessão continua em memória quando o navegador bloqueia o armazenamento. */}}
@@ -50,7 +59,10 @@ function request(kind,body={},stableId=null){
   if(!['pong','ping','hello'].includes(kind))pending.set(rid,{kind,at:Date.now()});return rid;
 }
 function connect(){
-  if(wanted)return;wanted=true;attempts=0;deadline=Date.now()+120000;save('truco-web-profile-v1',profile);openSocket();
+  if(wanted)return;
+  const stored=read('truco-web-session-v1');if(stored&&typeof stored.token==='string')token=/^[a-f0-9]{64}$/.test(stored.token)?stored.token:'';
+  try{localStorage.setItem('truco-web-active-tab-v1',tabId);}catch(_){}tabChannel?.postMessage(tabId);
+  wanted=true;attempts=0;deadline=Date.now()+120000;save('truco-web-profile-v1',profile);openSocket();
 }
 function openSocket(){
   if(!wanted)return;
@@ -104,9 +116,9 @@ function action(kind,payload={}){
   const rid=request('action',body);if(rid){pendingAction={rid,body};render();}
 }
 function leave(disconnect=false){
-  if(connected)request('leave');room=null;selected='';subject='';pendingAction=null;pending.clear();token='';save('truco-web-session-v1',{token:''});cancelSignal();
+  if(connected)request('leave');room=null;selected='';subject='';pendingAction=null;pending.clear();cancelSignal();
   clearTimeout(barrierTimer);barrierSent='';
-  if(disconnect){wanted=false;connected=false;clearTimeout(retryTimer);socket?.close();socket=null;setStatus('Desconectado');}
+  if(disconnect){token='';save('truco-web-session-v1',{token:''});wanted=false;connected=false;clearTimeout(retryTimer);socket?.close();socket=null;setStatus('Desconectado');}
   render();
 }
 function acknowledge(){
