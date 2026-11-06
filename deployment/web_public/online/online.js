@@ -1,4 +1,5 @@
 'use strict';
+document.body.dataset.webBuild='0.4.0-web1.6';
 // Cliente de apresentação. Cartas, turnos, regras e placares são decididos pelo servidor.
 const ENDPOINT='wss://truco-de-mesa-beta.onrender.com/v1/ws';
 const BUILD='0.4.0-beta2', AVATARS=['🧑🏽','👩🏻','🧔🏿','👩🏽','🧑🏻','👩🏿'];

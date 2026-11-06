@@ -10,7 +10,7 @@ import zipfile
 URL = 'https://github.com/matheushsilvams-jpg/truco-de-mesa-apk/releases/download/v0.4.0-web1/truco-de-mesa-0.4.0-web1.zip'
 SHA256 = 'ebb5bfe7b8cc27a80d490094a006ec11942c4018c45ec7af204a2d7538051b89'
 ROOT = Path(__file__).resolve().parents[1]
-WEB_REVISION = '0.4.0-web1.5'
+WEB_REVISION = '0.4.0-web1.6'
 
 def apply_frontend(destination):
     launcher=Path(__file__).with_name('web_launcher.html')
@@ -21,14 +21,23 @@ def apply_frontend(destination):
     data=json.loads(manifest.read_text());data['start_url']='./online/'
     manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
     (destination/'manifest.json').write_bytes(manifest.read_bytes())
+    online=destination/'online'
+    page=online/'index.html'
+    markup=page.read_text()
+    for extension in ('js','css'):
+        name='online.'+WEB_REVISION+'.'+extension
+        (online/name).write_bytes((online/('online.'+extension)).read_bytes())
+        markup=markup.replace('online.'+extension,name)
+    page.write_text(markup)
     files=['./'+p.relative_to(destination).as_posix() for p in sorted(destination.rglob('*')) if p.is_file() and p.name not in ('sw.js','build.json')]
-    shell=['./','./index.html','./online/','./online/index.html','./online/online.js','./online/online.css','./pwa.js','./logo.png','./manifest.json','./manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png']
+    shell=['./','./index.html','./online/','./online/index.html','./online/online.'+WEB_REVISION+'.js','./online/online.'+WEB_REVISION+'.css','./pwa.js','./logo.png','./manifest.json','./manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png']
     worker=destination/'sw.js';script=worker.read_text()
     import re
     script=re.sub(r'const CACHE=.*?;', 'const CACHE='+json.dumps('truco-web-'+WEB_REVISION)+';',script)
     script=re.sub(r'const FILES=.*?;', 'const FILES='+json.dumps(files)+';',script)
     script=re.sub(r'const SHELL=.*?;', 'const SHELL='+json.dumps(shell)+';',script)
-    script=script.replace("caches.open(CACHE).then(cache=>cache.addAll(SHELL))","caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())")
+    script=script.replace('cache.addAll(SHELL)','cache.addAll(SHELL.map(path=>new Request(path,{cache:"reload"})))')
+    if 'self.skipWaiting()' not in script:script="self.skipWaiting();\n"+script
     worker.write_text(script)
     report=destination/'build.json';data=json.loads(report.read_text());data['launcher_revision']=WEB_REVISION;data['online_client']='DOM/WebSocket';data['online_requires_webgl']=False
     data['files']={p.relative_to(destination).as_posix():{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(destination.rglob('*')) if p.is_file() and p.name!='build.json'}
