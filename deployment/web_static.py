@@ -10,7 +10,7 @@ import zipfile
 URL = 'https://github.com/matheushsilvams-jpg/truco-de-mesa-apk/releases/download/v0.4.0-web1/truco-de-mesa-0.4.0-web1.zip'
 SHA256 = 'ebb5bfe7b8cc27a80d490094a006ec11942c4018c45ec7af204a2d7538051b89'
 ROOT = Path(__file__).resolve().parents[1]
-WEB_REVISION = '0.4.0-web1.4'
+WEB_REVISION = '0.4.0-web1.5'
 
 def apply_frontend(destination):
     launcher=Path(__file__).with_name('web_launcher.html')

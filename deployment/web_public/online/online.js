@@ -197,11 +197,12 @@ function renderMatch(){
   const layout=node('div','','match-layout'),arena=node('section','','arena'),players=node('div','','players');
   r.players.forEach((person,index)=>{if(index===r.seat)return;const name=person.profile.nickname+(person.bot?' 🤖':'');const tag=node('div',name+' · '+(v.hands[index]?.length||0)+' cartas','player-tag'+(index%2?' terra':'')+(index===v.turn&&v.phase==='play'?' turn':''));tag.title='Lugar '+(index+1)+' · '+(index%2===myTeam?'Seu time':'Adversário');players.append(tag);});arena.append(players);
   const felt=node('div','','felt');let note=v.can_play?'Sua vez · escolha uma carta':v.phase==='play'?'Vez de '+playerName(v.turn):v.phase==='offer'?playerName(v.offer_seat)+' pediu '+v.offer+'!':v.phase==='eleven'?'Mão de '+v.special_limit+' · seu time decide':v.phase==='hand_over'?v.hand_winner===myTeam?'Seu time ganhou a mão!':'Adversários ganharam a mão':v.phase==='round_over'?'Resultado da rodada':'';
+  if(v.phase==='round_over'&&v.rule==='surpresa'&&!v.vira_revealed)note='Rodada concluída · resultado na revelação';
   if(r.barrier?.kind==='deal')note='Distribuindo as cartas…';
   if(pendingAction)note='Enviando jogada…';felt.append(node('div',note,'table-note'));
   if(v.hand_variant!=='mineiro'){const vira=node('div','','vira');append(vira,node('span','VIRA'),cardView(v.vira));felt.append(vira);}
   const trick=node('div','','trick');for(const play of v.trick){const played=node('div','','table-card');append(played,cardView(play.card),node('small',playerName(play.seat)));trick.append(played);}felt.append(trick);
-  const rounds=(v.rounds||[]).map((winner,index)=>'R'+(index+1)+': '+(winner<0?'Empate':winner===myTeam?'Seu time':'Adversários')).join(' · ');felt.append(node('div',rounds,'rounds'));arena.append(felt);
+  const rounds=(v.rounds||[]).map((winner,index)=>'R'+(index+1)+': '+(v.rule==='surpresa'&&!v.vira_revealed?'Aguardando a vira':winner<0?'Empate':winner===myTeam?'Seu time':'Adversários')).join(' · ');felt.append(node('div',rounds,'rounds'));arena.append(felt);
   const myArea=node('div','','my-area'),hand=node('div','','hand');for(const c of v.hands[r.seat]||[])hand.append(cardView(c.card,true,c.token));append(myArea,hand,node('div',profile.nickname+' · '+(v.blind?'Mão às cegas':v.rule==='uma_oculta'?'A terceira carta está oculta':'Toque na carta e depois em JOGAR'),'my-caption'));arena.append(myArea);
   const controls=node('aside','','actions-panel'),disabled=blocked||!!pendingAction||!!r.barrier?.id;
   if(r.barrier?.id){controls.append(button(r.barrier.mine_ready?'AGUARDANDO A MESA':r.barrier.kind==='deal'?'RECEBENDO CARTAS…':r.barrier.kind==='hand'?'PRÓXIMA MÃO':'CONTINUAR RODADA',acknowledge,'primary',r.barrier.mine_ready||blocked||r.barrier.kind==='deal'));}
